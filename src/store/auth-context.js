@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 let logoutTimer;
 
@@ -48,14 +48,14 @@ export const AuthContextProvider = (props) => {
   //if token is a string that`s not empty => This will return true
   // if token is a string that is empty, this will return false..
 
-  const logoutHandler = () => {
+  const logoutHandler = useCallback(() => {
     setToken(null);
     localStorage.removeItem("token");
     localStorage.removeItem("expirationTime");
     if (logoutTimer) {
       clearTimeout(logoutTimer);
     }
-  };
+  }, []);
 
   const loginHandler = (token, expirationTime) => {
     setToken(token);
@@ -71,7 +71,7 @@ export const AuthContextProvider = (props) => {
       console.log(tokenData.duration);
       logoutTimer = setTimeout(logoutHandler, tokenData.duration);
     }
-  }, [tokenData]);
+  }, [logoutHandler, tokenData]);
 
   const contextValue = {
     token: token,
