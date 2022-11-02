@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 let logoutTimer;
 
@@ -17,8 +17,30 @@ const calculateRemainingTime = (expirationTime) => {
   return remainingDuration;
 };
 
+const retrievedStoredToken = () => {
+  const storedToken = localStorage.getItem("token");
+  const storedExpirationDate = localStorage.getItem("expirationTime");
+  const remainingTime = calculateRemainingTime(storedExpirationDate);
+
+  if (remainingTime <= 60000) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("expirationTime");
+    return null;
+  }
+  return {
+    token: storedToken,
+    duration: remainingTime,
+  };
+};
+
 export const AuthContextProvider = (props) => {
-  const initialToken = localStorage.getItem("token");
+  const tokenData = retrievedStoredToken();
+  let initialToken;
+
+  if (tokenData) {
+    initialToken = tokenData.token;
+  }
+
   const [token, setToken] = useState(initialToken);
 
   const userIsLoggedIn = !!token;
@@ -29,16 +51,27 @@ export const AuthContextProvider = (props) => {
   const logoutHandler = () => {
     setToken(null);
     localStorage.removeItem("token");
+
+    if (logoutTimer) {
+      clearTimeout(logoutTimer);
+    }
   };
 
   const loginHandler = (token, expirationTime) => {
     setToken(token);
     //dont forget we can use only primitive type in local storage
     localStorage.setItem("token", token);
-
+    localStorage.setItem("expirationTime", expirationTime);
     const remainingTime = calculateRemainingTime(expirationTime);
-    setTimeout(logoutHandler, remainingTime);
+    logoutTimer = setTimeout(logoutHandler, remainingTime);
   };
+
+  useEffect(() => {
+    if (tokenData) {
+      console.log(tokenData.duration);
+      logoutTimer = setTimeout(logoutHandler, tokenData.duration);
+    }
+  }, [tokenData]);
 
   const contextValue = {
     token: token,
